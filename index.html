@@ -1,0 +1,527 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CompletionView 2.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/konva@9/konva.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <aside class="sidebar" role="complementary" aria-label="Wellbore configuration panel">
+        <div class="sidebar-brand">
+            <div class="brand-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="2" width="18" height="20" rx="3" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+                    <rect x="7" y="6" width="10" height="3" rx="1" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+                    <rect x="8" y="11" width="8" height="2" rx="0.5" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
+                    <rect x="9" y="15" width="6" height="2" rx="0.5" stroke="currentColor" stroke-width="0.8" opacity="0.4"/>
+                    <line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">CompletionView</span>
+                <span class="brand-badge">2.0</span>
+            </div>
+        </div>
+
+        <div class="sidebar-resize-handle" id="sidebar-resize-handle"></div>
+
+        <div class="tab-bar" role="tablist" aria-label="Configuration tabs">
+            <button class="tab-btn active" role="tab" aria-selected="true" onclick="switchTab('tab-env', this)" title="Well Data">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="1" width="12" height="14" rx="2"/>
+                    <line x1="5" y1="4.5" x2="11" y2="4.5"/><line x1="5" y1="7.5" x2="11" y2="7.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>
+                </svg>
+                <span>Well Data</span>
+            </button>
+            <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('tab-logs', this)" title="Logs">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M2 14 L2 2 L5 5 L8 3 L11 7 L14 4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="2" y1="14" x2="14" y2="14"/>
+                </svg>
+                <span>Logs</span>
+            </button>
+        </div>
+
+        <div class="tab-content active" id="tab-env" role="tabpanel">
+            <div class="accordion" data-section="casing">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="accordion-title">
+                        <svg class="section-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="12" height="12" rx="2"/><line x1="4" y1="5" x2="10" y2="5"/><line x1="4" y1="9" x2="10" y2="9"/></svg>
+                        <span>Casing Program</span>
+                        <span class="row-count-badge" id="casing-count">0</span>
+                    </div>
+                    <div class="accordion-actions">
+                        <button class="btn-icon" onclick="event.stopPropagation();addCasingRow()" aria-label="Add casing row" title="Add row">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="7" y1="3" x2="7" y2="11"/><line x1="3" y1="7" x2="11" y2="7"/></svg>
+                        </button>
+                        <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,4.5 6,7.5 9,4.5"/></svg>
+                    </div>
+                </div>
+                <div class="accordion-body">
+                    <div class="data-table-wrapper">
+                        <table class="data-table" aria-label="Casing program data">
+                            <thead>
+                                <tr>
+                                    <th>Size (in)</th>
+                                    <th>Top MD (m)</th>
+                                    <th>Btm MD (m)</th>
+                                    <th style="width: 28px;"><span class="th-help" title="Ctrl+V inside grid to paste Excel data (Size, Top, Btm)">?</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="casing-tbody" onpaste="handleGridPaste(event, 'casing')"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion" data-section="openhole">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="accordion-title">
+                        <svg class="section-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5.5"/><line x1="7" y1="3" x2="7" y2="11"/></svg>
+                        <span>Open Hole Sections</span>
+                        <span class="row-count-badge" id="openhole-count">0</span>
+                    </div>
+                    <div class="accordion-actions">
+                        <button class="btn-icon" onclick="event.stopPropagation();addOpenHoleRow()" aria-label="Add open hole row" title="Add row">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="7" y1="3" x2="7" y2="11"/><line x1="3" y1="7" x2="11" y2="7"/></svg>
+                        </button>
+                        <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,4.5 6,7.5 9,4.5"/></svg>
+                    </div>
+                </div>
+                <div class="accordion-body">
+                    <div class="data-table-wrapper">
+                        <table class="data-table" aria-label="Open hole sections data">
+                            <thead>
+                                <tr>
+                                    <th>Size (in)</th>
+                                    <th>Top MD (m)</th>
+                                    <th>Btm MD (m)</th>
+                                    <th style="width: 28px;"><span class="th-help" title="Ctrl+V inside grid to paste Excel data (Size, Top, Btm)">?</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="open-hole-tbody" onpaste="handleGridPaste(event, 'openHole')"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion" data-section="trajectory">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="accordion-title">
+                        <svg class="section-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12 C4 12, 5 4, 7 4 C9 4, 10 8, 12 2" stroke-linecap="round"/></svg>
+                        <span>Well Deviation</span>
+                        <span class="row-count-badge" id="traj-count">0</span>
+                    </div>
+                    <div class="accordion-actions">
+                        <select id="traj-format" class="input-field traj-format-select"
+                            onchange="updateTrajFormat()" onclick="event.stopPropagation()" aria-label="Trajectory format">
+                            <option value="md-tvd" selected>MD, TVD (m)</option>
+                            <option value="md-angle">MD, Angle (&deg;)</option>
+                        </select>
+                        <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,4.5 6,7.5 9,4.5"/></svg>
+                    </div>
+                </div>
+                <div class="accordion-body">
+                    <div class="data-table-wrapper traj-table-wrapper">
+                        <table class="data-table" aria-label="Well deviation survey data">
+                            <thead>
+                                <tr>
+                                    <th>MD (m) <span class="th-help" title="Ctrl+V inside grid to paste Excel data">?</span></th>
+                                    <th id="traj-col2">TVD (m)</th>
+                                    <th style="width: 28px;"><button class="btn-icon"
+                                            onclick="addTrajRow()" aria-label="Add trajectory row">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--accent-green)" stroke-width="2"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg>
+                                        </button></th>
+                                </tr>
+                            </thead>
+                            <tbody id="traj-tbody" onpaste="handleTrajPaste(event)">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-logs" role="tabpanel">
+            <div class="accordion" data-section="logs">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="accordion-title">
+                        <svg class="section-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12 L1 2 L4 5 L7 3 L10 6 L13 3" stroke-linecap="round" stroke-linejoin="round"/><line x1="1" y1="12" x2="13" y2="12"/></svg>
+                        <span>Well Logs</span>
+                        <span class="row-count-badge" id="logs-count">0</span>
+                    </div>
+                    <div class="accordion-actions">
+                        <button class="btn-icon" onclick="event.stopPropagation();addLog()" aria-label="Add log track" title="Add log">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="7" y1="3" x2="7" y2="11"/><line x1="3" y1="7" x2="11" y2="7"/></svg>
+                        </button>
+                        <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,4.5 6,7.5 9,4.5"/></svg>
+                    </div>
+                </div>
+                <div class="accordion-body logs-accordion-body">
+                    <div id="logs-container" class="logs-container">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="toggle-grid">
+            <div class="settings-section">
+                <div class="settings-section-label">Overlays</div>
+                <div class="toggle-row">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="show-hole" checked onchange="generateVisuals()" role="switch"
+                            aria-label="Show open hole">
+                        <div class="toggle-switch hole-color"></div> Open Hole
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="show-casing" onchange="generateVisuals()" role="switch"
+                            aria-label="Show casing">
+                        <div class="toggle-switch casing-color"></div> Casing
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="show-id" onchange="generateVisuals()" role="switch"
+                            aria-label="Show internal ID">
+                        <div class="toggle-switch id-color"></div> Internal ID
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="true-traj" checked onchange="handleTrueTrajChange()" role="switch"
+                            aria-label="Enable true curve trajectory">
+                        <div class="toggle-switch"></div> True Curve
+                    </label>
+                    <label class="toggle-label" style="grid-column: span 2;">
+                        <input type="checkbox" id="show-logs" checked onchange="generateVisuals()" role="switch"
+                            aria-label="Show log tracks">
+                        <div class="toggle-switch"></div> Log Tracks
+                    </label>
+                    <label class="toggle-label" style="grid-column: span 2;">
+                        <input type="checkbox" id="split-screens" onchange="reloadCurrentWellbore()" role="switch"
+                            aria-label="Show segmented screen joints">
+                        <div class="toggle-switch"></div> Segmented Screens
+                    </label>
+                </div>
+            </div>
+            <div class="settings-section">
+                <div class="settings-section-label">Annotations</div>
+                <div class="toggle-row annotations-grid">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="show-names" checked onchange="generateVisuals()" role="switch">
+                        <div class="toggle-switch"></div> Names
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="show-lengths" onchange="generateVisuals()" role="switch">
+                        <div class="toggle-switch"></div> Lengths
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="show-ruler" onchange="generateVisuals()" role="switch">
+                        <div class="toggle-switch"></div> Ruler
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="show-drop-lines" checked onchange="generateVisuals()" role="switch">
+                        <div class="toggle-switch"></div> Drop Lines
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="show-tvd" onchange="generateVisuals()" role="switch">
+                        <div class="toggle-switch"></div> TVD Track
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="show-dev" checked onchange="generateVisuals()" role="switch">
+                        <div class="toggle-switch"></div> Deviation
+                    </label>
+                    <label class="toggle-label" style="grid-column: span 2;">
+                        <input type="checkbox" id="show-dynamic-axes" checked onchange="generateVisuals()" role="switch">
+                        <div class="toggle-switch"></div> Dynamic Axes
+                    </label>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main-area" role="main">
+
+        <div class="header">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar" aria-label="Toggle sidebar">&#9776;</button>
+
+                <button class="well-selector-trigger" id="well-selector-trigger" onclick="toggleWellSelector()" title="Select wellbore">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="12" height="12" rx="2"/><line x1="4" y1="5" x2="10" y2="5"/><line x1="4" y1="9" x2="10" y2="9"/></svg>
+                    <span id="well-selector-label">Select Wellbore</span>
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.5"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+                </button>
+
+                <div class="navbar-group">
+                    <span class="navbar-label">Scope</span>
+                    <select id="completion-scope" class="navbar-select navbar-select-wide" aria-label="Completion scope">
+                        <option value="all">Full Completion</option>
+                        <option value="lower">Lower Completion</option>
+                    </select>
+                </div>
+
+                <div class="navbar-divider"></div>
+
+                <span class="navbar-label" title="Jump to depth (Ctrl+G)">Go to</span>
+                <div class="md-input-group">
+                    <input type="number" id="goto-md-input" placeholder="MD…" step="10"
+                        onkeydown="if(event.key==='Enter')goToMD()"
+                        aria-label="Go to MD depth"
+                        title="Pan canvas to this MD (Enter or Ctrl+G)">
+                    <span class="md-unit">m</span>
+                    <button class="md-go-btn" onclick="goToMD()" title="Jump to depth">&#10148;</button>
+                </div>
+                <div class="md-input-group md-input-group-sm">
+                    <input type="number" id="start-md" value="3119.32" step="10" onchange="handleStartMDChange()"
+                        aria-label="Tie-in depth in meters">
+                    <span class="md-unit">m</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="theme-toggle-group">
+                    <button class="theme-btn" id="app-theme-btn" onclick="toggleAppTheme()" title="App light/dark">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4"/><line x1="7" y1="0.5" x2="7" y2="2.5"/><line x1="7" y1="11.5" x2="7" y2="13.5"/><line x1="0.5" y1="7" x2="2.5" y2="7"/><line x1="11.5" y1="7" x2="13.5" y2="7"/><line x1="2.4" y1="2.4" x2="3.8" y2="3.8"/><line x1="10.2" y1="10.2" x2="11.6" y2="11.6"/><line x1="2.4" y1="11.6" x2="3.8" y2="10.2"/><line x1="10.2" y1="3.8" x2="11.6" y2="2.4"/></svg>
+                    </button>
+                    <button class="theme-btn" id="dark-mode-btn" onclick="toggleDarkCanvas()" title="Canvas light/dark">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="1.5" width="11" height="11" rx="2"/><circle cx="7" cy="7" r="2.5"/></svg>
+                    </button>
+                </div>
+                <div class="navbar-divider"></div>
+                <button class="btn btn-secondary" onclick="zoomToFit()" title="Zoom to fit content" aria-label="Zoom to fit">Fit</button>
+                <button class="btn btn-secondary" id="undo-btn" onclick="undo()" disabled title="Undo (Ctrl+Z)" aria-label="Undo">Undo</button>
+                <button class="btn btn-secondary" id="redo-btn" onclick="redo()" disabled title="Redo (Ctrl+Y)" aria-label="Redo">Redo</button>
+                <div class="export-dropdown" id="export-dropdown">
+                    <button class="btn btn-secondary" onclick="toggleExportMenu()" aria-label="Export" aria-haspopup="true">
+                        Export
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-left:4px;opacity:0.5"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+                    </button>
+                    <div class="export-dropdown-menu" id="export-dropdown-menu">
+                        <button class="export-dropdown-item" onclick="exportPNG(); toggleExportMenu();">PNG</button>
+                        <button class="export-dropdown-item" onclick="exportSVG(); toggleExportMenu();">SVG</button>
+                        <button class="export-dropdown-item" onclick="exportPDF(); toggleExportMenu();">PDF</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Well Selector Popover -->
+        <div class="well-popover" id="well-popover">
+            <div class="well-popover-header">
+                <span class="well-popover-title">Select Wellbore</span>
+                <button class="btn-icon" onclick="toggleWellSelector()" aria-label="Close" title="Close">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+                </button>
+            </div>
+            <div class="well-popover-body">
+                <div class="well-popover-field">
+                    <label class="well-popover-label">Mode</label>
+                    <select id="data-mode" class="well-popover-select" onchange="onModeChange()" aria-label="Data source mode">
+                        <option value="local" selected>Local</option>
+                        <option value="akerbp">AkerBP API</option>
+                    </select>
+                </div>
+                <div class="well-popover-field">
+                    <label class="well-popover-label">Field</label>
+                    <select id="field-select" class="well-popover-select" onchange="onFieldChange()" aria-label="Select field">
+                        <option value="">— Field —</option>
+                        <option value="Edvard Grieg">Edvard Grieg</option>
+                        <option value="Ivar Aasen">Ivar Aasen</option>
+                    </select>
+                </div>
+                <div class="well-popover-field">
+                    <label class="well-popover-label">Well</label>
+                    <div class="well-popover-select-row">
+                        <select id="well-select" class="well-popover-select" onchange="onWellChange()" aria-label="Select well">
+                            <option value="">— Well —</option>
+                        </select>
+                        <button class="btn-add-inline local-only" id="btn-add-well" onclick="promptNewLocalWell()" title="Add new well" style="display:none;">+</button>
+                        <button class="btn-add-inline btn-remove-inline local-only" id="btn-del-well" onclick="deleteLocalWellAll()" title="Delete well and all wellbores" style="display:none;">&minus;</button>
+                    </div>
+                </div>
+                <div class="well-popover-field">
+                    <label class="well-popover-label">Wellbore</label>
+                    <div class="well-popover-select-row">
+                        <select id="wellbore-select" class="well-popover-select" onchange="onWellboreChange()" aria-label="Select wellbore">
+                            <option value="">— Wellbore —</option>
+                        </select>
+                        <button class="btn-add-inline local-only" id="btn-add-wellbore" onclick="promptNewLocalWellbore()" title="Add new wellbore" style="display:none;">+</button>
+                        <button class="btn-add-inline btn-remove-inline local-only" id="btn-del-wellbore" onclick="deleteLocalWellboreSingle()" title="Delete this wellbore" style="display:none;">&minus;</button>
+                    </div>
+                </div>
+                <div class="well-popover-field" id="revision-group">
+                    <label class="well-popover-label">Revision</label>
+                    <select id="revision-select" class="well-popover-select" aria-label="Select revision">
+                        <option value="">— Rev —</option>
+                    </select>
+                </div>
+                <div class="well-popover-actions">
+                    <button class="btn btn-primary" onclick="loadSelectedCompletion(); toggleWellSelector();">Load</button>
+                    <button class="btn btn-save" id="btn-save-local" onclick="saveLocalWell()" style="display:none;">Save</button>
+                </div>
+                <div class="well-popover-divider"></div>
+                <div class="well-popover-section-label">JSON Files</div>
+                <div class="well-popover-actions">
+                    <button class="btn btn-secondary" id="btn-export-json" onclick="exportLocalWellJSON()" title="Export well as JSON">Export</button>
+                    <button class="btn btn-secondary" id="btn-import-json" onclick="document.getElementById('json-import-input').click()" title="Import well from JSON">Import</button>
+                    <input type="file" id="json-import-input" accept=".json" onchange="importLocalWellJSON(event)" style="display:none;">
+                </div>
+            </div>
+        </div>
+
+        <div id="component-overlay">
+            <h3 id="overlay-title">Component Type</h3>
+            <div id="overlay-desc-row" class="overlay-row" style="display:none;"><span class="overlay-label">Description:</span><span class="overlay-value"
+                    id="overlay-desc" style="font-size:0.72rem;max-width:220px;word-wrap:break-word;"></span></div>
+            <div class="overlay-row"><span class="overlay-label">Top MD:</span><span class="overlay-value"
+                    id="overlay-top">0 m</span></div>
+            <div class="overlay-row"><span class="overlay-label">Bottom MD:</span><span class="overlay-value"
+                    id="overlay-bot">0 m</span></div>
+            <div class="overlay-row"><span class="overlay-label">Length:</span><span class="overlay-value"
+                    id="overlay-len">0 m</span></div>
+            <div class="overlay-row"><span class="overlay-label">OD:</span><span class="overlay-value"
+                    id="overlay-od">0 in</span></div>
+            <div class="overlay-row"><span class="overlay-label">ID:</span><span class="overlay-value"
+                    id="overlay-id">0 in</span></div>
+        </div>
+
+        <div id="log-tooltip" style="display:none; position:fixed; pointer-events:none; z-index:1001;
+            background:#0f172a; border:1px solid #334155; border-radius:6px;
+            padding:6px 12px; font-family:monospace; font-size:0.8rem; color:#94a3b8;
+            box-shadow:0 4px 16px rgba(0,0,0,0.5); white-space:nowrap;">
+            <span id="log-tt-name" style="font-weight:bold;"></span>
+            <span style="color:#475569; margin:0 6px;">|</span>
+            <span id="log-tt-md" style="color:#64748b;"></span>
+            <span style="color:#475569; margin:0 4px;">&rarr;</span>
+            <span id="log-tt-val" style="color:white; font-size:0.9rem; font-weight:bold;"></span>
+        </div>
+
+        <!-- Loading bar -->
+        <div id="loading-bar" class="loading-bar" style="display:none;">
+            <div class="loading-bar-track">
+                <div class="loading-bar-fill" id="loading-bar-fill"></div>
+            </div>
+            <span class="loading-bar-text" id="loading-bar-text">Loading...</span>
+        </div>
+
+        <div class="canvas-wrapper">
+            <div class="canvas-grid"></div>
+            <div id="container" class="canvas-container" role="img" aria-label="Completion string visualization"></div>
+            <div class="minimap" id="minimap" style="display:none;" title="Click to navigate">
+                <canvas id="minimap-canvas"></canvas>
+                <div class="minimap-viewport" id="minimap-viewport"></div>
+            </div>
+            <button class="minimap-toggle" id="minimap-toggle" onclick="toggleMinimap()" title="Toggle mini-map">&#9635;</button>
+        </div>
+
+        <div id="bottom-panel" class="bottom-panel collapsed">
+            <div class="panel-resize-handle" id="panel-resize-handle"></div>
+            <div class="panel-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn-icon panel-collapse-btn" onclick="toggleBottomPanel()" title="Hide/show panel" aria-label="Toggle completion panel">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,5 7,9 11,5"/></svg>
+                    </button>
+                    <h2 style="font-size: 0.85rem; font-weight: bold; color: white; margin: 0;">Completion
+                        String Sequence</h2>
+                    <span class="th-help" title="Ctrl+V inside grid to paste Excel data (Type, Top MD, Length, OD, ID)">?</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="toggleImport()"
+                        aria-label="Open manual import">&#128203; Manual Import</button>
+                    <button class="btn btn-primary" onclick="addComponent()"
+                        aria-label="Add completion component">+ Add Component</button>
+                </div>
+            </div>
+
+            <div id="import-section" class="import-overlay">
+                <div class="import-panel">
+                    <div class="import-panel-header">
+                        <h3 style="margin:0;font-size:0.85rem;font-weight:600;color:white;">Paste Completion Data</h3>
+                        <span style="font-size:0.72rem;color:var(--text-500);">Format: Type &bull; Description &bull; Joint Length &bull; Depth Top &bull; ID &bull; OD &bull; SP &bull; Tracer &bull; ICD</span>
+                    </div>
+                    <div class="import-paste-zone" id="import-paste-zone" tabindex="0">
+                        <textarea id="import-raw-textarea" class="import-raw-textarea" placeholder="Current data shown below. Select all (Ctrl+A), copy (Ctrl+C), edit in Excel, then paste back (Ctrl+V)." spellcheck="false"></textarea>
+                        <div class="data-table-wrapper" id="import-preview-wrap" style="display:none;width:100%;max-height:280px;overflow:auto;border:none;">
+                            <table class="data-table import-preview-table" aria-label="Import preview">
+                                <thead>
+                                    <tr>
+                                        <th style="width:32px">#</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th>Joint Len</th>
+                                        <th style="color:var(--brand-400)">Depth Top</th>
+                                        <th>Calc Len</th>
+                                        <th>ID</th>
+                                        <th>OD</th>
+                                        <th class="screen-opt-th" style="width:32px" title="Swell Packer">SP</th>
+                                        <th class="screen-opt-th" style="width:32px" title="Tracer Carrier">TC</th>
+                                        <th class="screen-opt-th" style="width:32px" title="Inflow Control Device">ICD</th>
+                                        <th style="width:24px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="import-preview-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+                        <button class="btn btn-primary" id="import-confirm-btn" onclick="processImport()" disabled>Import &amp; Replace</button>
+                        <button class="btn btn-secondary" onclick="toggleImport()">Cancel</button>
+                        <span id="import-status" style="font-size:0.72rem;color:var(--text-500);margin-left:auto;"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-table-wrapper comp-table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table comp-table" aria-label="Completion string components">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">Seq</th>
+                            <th>Component Type</th>
+                            <th style="color: var(--brand-400);">Top MD (m)</th>
+                            <th>Length (m)</th>
+                            <th>OD (in)</th>
+                            <th>ID (in)</th>
+                            <th class="screen-opt-th" style="width: 38px;" title="Swell Packer">SP</th>
+                            <th class="screen-opt-th" style="width: 38px;" title="Tracer Carrier">TC</th>
+                            <th class="screen-opt-th" style="width: 38px;" title="Inflow Control Device">ICD</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" onpaste="handleComponentPaste(event)"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="status-bar" id="status-bar">
+            <span><span class="status-dot"></span> <span id="status-saved">Saved</span></span>
+            <span>Components: <strong id="status-count">0</strong></span>
+            <span>Total Length: <strong id="status-length">0 m</strong></span>
+            <span>Zoom: <strong id="status-zoom">100%</strong></span>
+            <span id="status-warnings" style="display:none; cursor:pointer;" onclick="showDataQualityReport()" title="Click for details">
+                <span style="color:var(--accent-orange);">&#9888;</span> <strong id="status-warn-count">0</strong> warnings
+            </span>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+
+
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" data-action="edit">&#9998; Edit in Table</div>
+        <div class="context-menu-item" data-action="duplicate">&#10697; Duplicate</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" data-action="insert-before">&#8679; Insert Before</div>
+        <div class="context-menu-item" data-action="insert-after">&#8681; Insert After</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item danger" data-action="delete">&#10005; Delete</div>
+    </div>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script src="renderer.js"></script>
+</body>
+
+</html>
